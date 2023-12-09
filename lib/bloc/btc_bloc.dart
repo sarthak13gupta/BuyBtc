@@ -25,6 +25,12 @@ class BtcBloc {
 
   Stream<ChartData> get btcChartStream => _btcChartController.stream;
 
+  final BehaviorSubject<ShowChartValue> _showChartValueController =
+      BehaviorSubject<ShowChartValue>();
+
+  Stream<ShowChartValue> get showChartValueStream =>
+      _showChartValueController.stream;
+
   Future<void> _init() async {
     actionStream.listen((event) {
       if (event is CallPriceApi) {
@@ -33,6 +39,8 @@ class BtcBloc {
         _buyBtc(event);
       } else if (event is GetChart) {
         _getChart(event);
+      } else if (event is ShowChartValue) {
+        _showChartvalue(event);
       }
     });
   }
@@ -88,5 +96,9 @@ class BtcBloc {
       minPrice: tempMin,
     );
     _btcChartController.add(chartData);
+  }
+
+  void _showChartvalue(ShowChartValue event) async {
+    _showChartValueController.add(event);
   }
 }

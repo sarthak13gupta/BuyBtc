@@ -19,3 +19,12 @@ class CallPriceApi extends BtcEvents {
   final BuildContext context;
   CallPriceApi({required this.context});
 }
+
+class ShowChartValue extends BtcEvents {
+  DateTime? time;
+  double? price;
+  ShowChartValue({
+    required this.time,
+    required this.price,
+  });
+}

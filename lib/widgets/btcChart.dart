@@ -28,18 +28,18 @@ class _BtcChartState extends State<BtcChart> {
 
   void _setTrackBall() {
     _trackballBehavior = TrackballBehavior(
+      shouldAlwaysShow: true,
       lineType: TrackballLineType.none,
       enable: true,
       activationMode: ActivationMode.singleTap,
       markerSettings: const TrackballMarkerSettings(
-        markerVisibility: TrackballVisibilityMode.hidden,
+        markerVisibility: TrackballVisibilityMode.visible,
       ),
       tooltipSettings: const InteractiveTooltip(
+        enable: false,
         canShowMarker: false,
-        format: 'point.x point.y',
       ),
     );
-    // var values = _trackballBehavior.
   }
 
   @override
@@ -77,44 +77,52 @@ class _BtcChartState extends State<BtcChart> {
             SizedBox(
               height: boxHeight * 0.45,
               child: Expanded(
-                child: SfCartesianChart(
-                  borderColor: Colors.transparent,
-                  borderWidth: 0,
-                  plotAreaBorderWidth: 0,
-                  margin: const EdgeInsets.all(0),
-                  trackballBehavior: _trackballBehavior,
-                  onTrackballPositionChanging: (trackballArgs) {
-                    _handleBtcData(trackballArgs);
-                  },
-                  zoomPanBehavior: ZoomPanBehavior(
-                      enablePinching: true, zoomMode: ZoomMode.x),
-                  tooltipBehavior: TooltipBehavior(enable: true),
-                  series: <ChartSeries<ChartModel, DateTime>>[
-                    SplineSeries(
-                      splineType: SplineType.natural,
-                      dataSource: itemChart,
-                      color: Theme.of(context).primaryColorDark,
-                      xValueMapper: (ChartModel sales, _) => sales.time,
-                      yValueMapper: (ChartModel sales, _) => sales.price,
-                      enableTooltip: false,
-                      width: 2,
+                child: GestureDetector(
+                  onTap: (() {}),
+                  child: SfCartesianChart(
+                    borderColor: Colors.transparent,
+                    borderWidth: 0,
+                    plotAreaBorderWidth: 0,
+                    margin: const EdgeInsets.all(0),
+                    trackballBehavior: _trackballBehavior,
+                    onTrackballPositionChanging: (trackballArgs) {
+                      _handleBtcData(trackballArgs);
+                    },
+                    onChartTouchInteractionUp: ((tapArgs) {
+                      widget.btcBloc.actionController
+                          .add(ShowChartValue(time: null, price: null));
+                    }),
+                    zoomPanBehavior: ZoomPanBehavior(
+                        enablePinching: true, zoomMode: ZoomMode.x),
+                    tooltipBehavior: TooltipBehavior(enable: true),
+                    series: <ChartSeries<ChartModel, DateTime>>[
+                      SplineSeries(
+                        splineType: SplineType.natural,
+                        dataSource: itemChart,
+                        color: Theme.of(context).primaryColorDark,
+                        xValueMapper: (ChartModel sales, _) => sales.time,
+                        yValueMapper: (ChartModel sales, _) => sales.price,
+                        enableTooltip: false,
+                        width: 2,
+                      ),
+                    ],
+                    primaryXAxis: DateTimeAxis(
+                      isVisible: false,
+                      dateFormat: DateFormat.MMMMd(),
+                      majorGridLines: const MajorGridLines(width: 0),
+                      borderColor: Colors.transparent,
+                      borderWidth: 0,
                     ),
-                  ],
-                  primaryXAxis: DateTimeAxis(
-                    isVisible: false,
-                    dateFormat: DateFormat.MMMMd(),
-                    majorGridLines: const MajorGridLines(width: 0),
-                    borderColor: Colors.transparent,
-                    borderWidth: 0,
-                  ),
-                  primaryYAxis: NumericAxis(
-                    borderColor: Colors.transparent,
-                    borderWidth: 0,
-                    isVisible: false,
-                    minimum: minPrice,
-                    maximum: maxPrice,
-                    numberFormat: NumberFormat.simpleCurrency(decimalDigits: 0),
-                    majorGridLines: const MajorGridLines(width: 0),
+                    primaryYAxis: NumericAxis(
+                      borderColor: Colors.transparent,
+                      borderWidth: 0,
+                      isVisible: false,
+                      minimum: minPrice,
+                      maximum: maxPrice,
+                      numberFormat:
+                          NumberFormat.simpleCurrency(decimalDigits: 0),
+                      majorGridLines: const MajorGridLines(width: 0),
+                    ),
                   ),
                 ),
               ),
@@ -128,7 +136,6 @@ class _BtcChartState extends State<BtcChart> {
                 itemCount: text.length,
                 itemBuilder: (context, index) {
                   return SizedBox(
-                    // padding: const EdgeInsets.symmetric(horizontal: 00),
                     width: boxWidth / 6.3,
                     child: Center(
                       child: GestureDetector(
@@ -145,14 +152,11 @@ class _BtcChartState extends State<BtcChart> {
                             textBool[index] = true;
                           });
                           setDays(text[index]);
-                          // add bloc functionality
                           _getChart();
                         },
                         child: Container(
                           width: 40,
                           height: 40,
-                          // padding: const EdgeInsets.symmetric(
-                          //     horizontal: 10, vertical: 10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(50),
                             color: textBool[index] == true
@@ -216,8 +220,9 @@ class _BtcChartState extends State<BtcChart> {
   _handleBtcData(TrackballArgs trackballArgs) {
     DateTime xVal = trackballArgs.chartPointInfo.chartDataPoint!.x;
     double yVal = trackballArgs.chartPointInfo.chartDataPoint!.y;
-    print("x $xVal");
-    print("y $yVal");
+
+    widget.btcBloc.actionController
+        .add(ShowChartValue(time: xVal, price: yVal));
   }
 
   Future<void> _getChart() async {

@@ -2,6 +2,7 @@ import 'package:buy_bitcoin/bloc/btc_bloc.dart';
 import 'package:buy_bitcoin/bloc/btc_event.dart';
 import 'package:buy_bitcoin/bloc/btc_model.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class BtcPrice extends StatefulWidget {
   final BtcBloc btcBloc;
@@ -12,25 +13,38 @@ class BtcPrice extends StatefulWidget {
 }
 
 class _BtcPriceState extends State<BtcPrice> {
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   widget.btcBloc.actionController.add(CallPriceApi());
-  // }
+  bool _showChartValue = false;
+  double? _chartPrice;
+  String? _chartPriceTime;
+  String? _chartPriceDate;
+  @override
+  void initState() {
+    super.initState();
+    _setShowChartValueListener();
+  }
+
+  _setShowChartValueListener() {
+    widget.btcBloc.showChartValueStream.listen((event) {
+      if (event.time != null) {
+        setState(() {
+          _showChartValue = true;
+          _chartPrice = event.price;
+          _chartPriceDate = DateFormat('MM/dd/yyyy').format(event.time!);
+          _chartPriceTime = DateFormat('hh:mm a').format(event.time!);
+        });
+      } else {
+        setState(() {
+          _showChartValue = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
       stream: widget.btcBloc.btcDataStream,
       builder: (context, snapshot) {
-        // if (snapshot.connectionState == ConnectionState.waiting ||
-        //     snapshot.data == null) {
-        //   return Center(
-        //       child: CircularProgressIndicator(
-        //     color: Theme.of(context).primaryColorDark,
-        //   ));
-        // }
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -50,11 +64,12 @@ class _BtcPriceState extends State<BtcPrice> {
                 : Row(
                     children: [
                       Expanded(
-                        // flex: 2,
                         child: Column(
                           children: [
                             Text(
-                              '\$${snapshot.data!.currentPrice}',
+                              _showChartValue == true
+                                  ? '\$${_chartPrice!.toStringAsFixed(2)}'
+                                  : '\$${snapshot.data!.currentPrice}',
                               style: const TextStyle(
                                   fontSize: 30, fontWeight: FontWeight.bold),
                             ),
@@ -62,11 +77,13 @@ class _BtcPriceState extends State<BtcPrice> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  snapshot.data!.priceChange24H
-                                          .toString()
-                                          .contains('-')
-                                      ? "-\$${snapshot.data!.priceChange24H.toStringAsFixed(2).toString().replaceAll('-', '')}"
-                                      : "\$${snapshot.data!.priceChange24H.toStringAsFixed(2)}",
+                                  _showChartValue == true
+                                      ? '$_chartPriceDate'
+                                      : snapshot.data!.priceChange24H
+                                              .toString()
+                                              .contains('-')
+                                          ? "-\$${snapshot.data!.priceChange24H.toStringAsFixed(2).toString().replaceAll('-', '')}"
+                                          : "\$${snapshot.data!.priceChange24H.toStringAsFixed(2)}",
                                   style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.normal,
@@ -76,15 +93,19 @@ class _BtcPriceState extends State<BtcPrice> {
                                   width: 10,
                                 ),
                                 Text(
-                                  '${snapshot.data!.marketCapChangePercentage24H.toStringAsFixed(2)}%',
+                                  _showChartValue
+                                      ? '$_chartPriceTime'
+                                      : '${snapshot.data!.marketCapChangePercentage24H.toStringAsFixed(2)}%',
                                   style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.normal,
-                                      color: snapshot.data!
-                                                  .marketCapChangePercentage24H >=
-                                              0
-                                          ? Colors.green
-                                          : Colors.red),
+                                      color: _showChartValue
+                                          ? Colors.black
+                                          : snapshot.data!
+                                                      .marketCapChangePercentage24H >=
+                                                  0
+                                              ? Colors.green
+                                              : Colors.red),
                                 ),
                               ],
                             ),

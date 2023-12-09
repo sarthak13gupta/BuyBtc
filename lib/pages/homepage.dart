@@ -1,12 +1,14 @@
 import 'package:buy_bitcoin/bloc/btc_bloc.dart';
+import 'package:buy_bitcoin/bloc/btc_event.dart';
+import 'package:buy_bitcoin/bloc/btc_model.dart';
 import 'package:buy_bitcoin/pages/preview.dart';
+import 'package:buy_bitcoin/widgets/alertDialog.dart';
 import 'package:buy_bitcoin/widgets/btcChart.dart';
 import 'package:buy_bitcoin/widgets/btcPrice.dart';
 import 'package:flutter/material.dart';
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -14,66 +16,66 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   BtcBloc bloc = BtcBloc();
+  BtcModel? btcData;
   @override
   void initState() {
     super.initState();
-    // bloc.actionController.add(CallPriceApi());
+    _callBtcPrice();
+  }
+
+  void _callBtcPrice() async {
+    bloc.actionController.add(CallPriceApi(context: context));
+    btcData = await bloc.btcDataStream.first;
   }
 
   @override
   Widget build(BuildContext context) {
+    double myHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Wallet Money",
-              style: TextStyle(fontSize: 20),
-            ),
-            const Divider(),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  const SizedBox(
-                    height: 40,
-                  ),
-                  Expanded(
-                    // height: 400,
-                    child: BtcChart(
-                      btcBloc: bloc,
-                    ),
-                  ),
-                  const Divider(),
-                  const SizedBox(
-                    height: 40,
-                  ),
-                  SizedBox(
-                    // height: 100,
-                    child: BtcPrice(
-                      btcBloc: bloc,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  SizedBox(
-                    child: FloatingActionButton.extended(
-                        onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => PreviewPage(),
-                          ));
-                        },
-                        label: const Text("BUY BTC")),
-                  )
-                ],
+            SizedBox(
+              height: myHeight * 0.15,
+              child: BtcPrice(
+                btcBloc: bloc,
               ),
             ),
+            SizedBox(
+              height: myHeight * 0.55,
+              child: BtcChart(
+                btcBloc: bloc,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                height: myHeight * 0.07,
+                width: double.infinity,
+                child: FloatingActionButton.extended(
+                    backgroundColor: Theme.of(context).primaryColorLight,
+                    onPressed: () {
+                      btcData != null
+                          ? Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => PreviewPage(
+                                btcBloc: bloc,
+                              ),
+                            ))
+                          : null;
+                    },
+                    label: const Text(
+                      "BUY BTC",
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    )),
+              ),
+            )
           ],
         ),
       ),

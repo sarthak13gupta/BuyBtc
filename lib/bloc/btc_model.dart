@@ -76,21 +76,30 @@ class SparklineIn7D {
 }
 
 class ChartModel {
-  int time;
-  double? open;
-  double? high;
-  double? low;
-  double? close;
+  DateTime time;
+  double? price;
 
-  ChartModel({required this.time, this.open, this.high, this.low, this.close});
+  ChartModel({
+    required this.time,
+    this.price,
+  });
 
   factory ChartModel.fromJson(List l) {
     return ChartModel(
-      time: l[0] == null ? null : l[0]!,
-      open: l[1] == null ? null : l[1]!,
-      high: l[2] == null ? null : l[2]!,
-      low: l[3] == null ? null : l[3]!,
-      close: l[4] == null ? null : l[4]!,
+      time: DateTime.fromMillisecondsSinceEpoch(l[0]),
+      price: l[1],
     );
   }
+}
+
+class ChartData {
+  List<ChartModel> chartValues;
+  double minPrice;
+  double maxPrice;
+
+  ChartData({
+    required this.chartValues,
+    required this.maxPrice,
+    required this.minPrice,
+  });
 }

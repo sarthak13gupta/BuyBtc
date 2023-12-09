@@ -1,9 +1,11 @@
+import 'package:buy_bitcoin/bloc/btc_bloc.dart';
+import 'package:buy_bitcoin/bloc/btc_model.dart';
 import 'package:buy_bitcoin/pages/buyBtc.dart';
 import 'package:flutter/material.dart';
 
 class PreviewPage extends StatefulWidget {
-  num? marketPrice = 43000;
-  PreviewPage({this.marketPrice, super.key});
+  final BtcBloc btcBloc;
+  PreviewPage({required this.btcBloc, super.key});
 
   @override
   State<PreviewPage> createState() => _PreviewPageState();
@@ -11,76 +13,163 @@ class PreviewPage extends StatefulWidget {
 
 class _PreviewPageState extends State<PreviewPage> {
   final TextEditingController _controller = TextEditingController();
-  num convertedVal = 0.00000;
+  num btcVal = 0.00000;
+  num usdVal = 0.0;
   num marketPrice = 43000;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Preview Page"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
+    return StreamBuilder(
+      stream: widget.btcBloc.btcDataStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting ||
+            snapshot.data == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).primaryColorDark,
+              ),
+            ),
+          );
+        }
+        BtcModel btcData = snapshot.data!;
+        return Scaffold(
+          appBar: AppBar(),
+          body: Padding(
+            padding: const EdgeInsets.fromLTRB(15, 10, 10, 10),
+            child: Column(
               children: [
-                const Text(
-                  "USD",
-                  style: TextStyle(fontSize: 20, color: Colors.black),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    const Text(
+                      "Buy \$",
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00305E),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: TextField(
+                          cursorColor: Colors.black,
+                          decoration: const InputDecoration(
+                            // label: Text("\$"),
+                            border: InputBorder.none,
+                          ),
+                          style: const TextStyle(
+                              fontSize: 40, color: Colors.black),
+                          controller: _controller,
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            double val =
+                                value.isNotEmpty ? double.parse(value) : 0;
+                            setState(() {
+                              btcVal = (val) / marketPrice;
+                              usdVal = val;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Row(
+                  children: [
+                    Text(
+                      "in Bitcoin",
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00305E),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      "1 BTC = ${btcData.currentPrice}",
+                      // textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.normal,
+                        color: Theme.of(context).primaryColorDark,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(
-                  width: 30,
+                  height: 50,
                 ),
-                Expanded(
-                  child: TextField(
-                    style: const TextStyle(fontSize: 20, color: Colors.black),
-                    controller: _controller,
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      double val = value.isNotEmpty ? double.parse(value) : 0;
-                      setState(() {
-                        convertedVal = (val) / marketPrice;
-                      });
-                    },
+                SizedBox(
+                  height: 55,
+                  child: DropdownButton<String>(
+                    isExpanded:
+                        true, // Ensure the dropdown button fills the width
+                    value:
+                        'Your Single Value', // The selected value (set to the single value)
+                    onChanged: null, // Disable dropdown selection
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: 'Your Single Value',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Checking Account ****5900",
+                              style:
+                                  TextStyle(fontSize: 15, color: Colors.black),
+                            ),
+                            Text(
+                              "Limit of \$1000",
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: Theme.of(context).primaryColorDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(
-              height: 50,
-            ),
-            Row(
-              children: [
-                const Text(
-                  "BTC",
-                  style: TextStyle(fontSize: 20, color: Colors.black),
-                ),
                 const SizedBox(
-                  width: 30,
+                  height: 30,
                 ),
-                Text(
-                  "$convertedVal",
-                  style: const TextStyle(fontSize: 20, color: Colors.black),
+                SizedBox(
+                  width: double.infinity,
+                  child: FloatingActionButton.extended(
+                    backgroundColor: Theme.of(context).primaryColorLight,
+                    onPressed: () {
+                      btcVal > 0.0
+                          ? Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => BuyBtc(
+                                btcBloc: widget.btcBloc,
+                                buyAmountBtc: btcVal,
+                                buyAmountUsd: usdVal,
+                              ),
+                            ))
+                          : null;
+                    },
+                    label: const Text(
+                      "Preview Buy",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 )
               ],
             ),
-            const SizedBox(
-              height: 40,
-            ),
-            FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const BuyBtc(),
-                ));
-              },
-              label: const Text("Confirm Buy"),
-            )
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

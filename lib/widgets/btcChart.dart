@@ -1,11 +1,9 @@
-import 'dart:convert';
-
+import 'package:buy_bitcoin/bloc/btc_event.dart';
+import 'package:intl/intl.dart';
 import 'package:buy_bitcoin/bloc/btc_bloc.dart';
 import 'package:buy_bitcoin/bloc/btc_model.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
 class BtcChart extends StatefulWidget {
   final BtcBloc btcBloc;
@@ -16,76 +14,174 @@ class BtcChart extends StatefulWidget {
 }
 
 class _BtcChartState extends State<BtcChart> {
-  late TrackballBehavior trackballBehavior;
-  // List<_SalesData> data = [
-  //   _SalesData('Jan', 35),
-  //   _SalesData('Feb', 28),
-  //   _SalesData('Mar', 34),
-  //   _SalesData('Apr', 32),
-  //   _SalesData('May', 40)
-  // ];
+  late TrackballBehavior _trackballBehavior;
 
   @override
   void initState() {
-    // getChart();
-    trackballBehavior = TrackballBehavior(
-        enable: true, activationMode: ActivationMode.singleTap);
+    // set a default days value for this
+    widget.btcBloc.actionController.add(GetChart(
+      days: 30,
+    ));
+    _setTrackBall();
     super.initState();
+  }
+
+  void _setTrackBall() {
+    _trackballBehavior = TrackballBehavior(
+      lineType: TrackballLineType.none,
+      enable: true,
+      activationMode: ActivationMode.singleTap,
+      markerSettings: const TrackballMarkerSettings(
+        markerVisibility: TrackballVisibilityMode.hidden,
+      ),
+      tooltipSettings: const InteractiveTooltip(
+        canShowMarker: false,
+        format: 'point.x point.y',
+      ),
+    );
+    // var values = _trackballBehavior.
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        //Initialize the chart widget
-        SfCartesianChart(
-          trackballBehavior: trackballBehavior,
-          zoomPanBehavior:
-              ZoomPanBehavior(enablePinching: true, zoomMode: ZoomMode.x),
-          // primaryXAxis: CategoryAxis(),
-          // Chart title
-          // title: ChartTitle(text: 'Half yearly sales analysis'),
-          // Enable legend
-          // legend: Legend(isVisible: true),
-          // Enable tooltip
-          tooltipBehavior: TooltipBehavior(enable: true),
-          series: <CandleSeries>[
-            CandleSeries<ChartModel, int>(
-                enableSolidCandles: true,
-                enableTooltip: true,
-                bullColor: Colors.green,
-                bearColor: Colors.red,
-                dataSource: itemChart!,
-                xValueMapper: (ChartModel sales, _) => sales.time,
-                lowValueMapper: (ChartModel sales, _) => sales.low,
-                highValueMapper: (ChartModel sales, _) => sales.high,
-                openValueMapper: (ChartModel sales, _) => sales.open,
-                closeValueMapper: (ChartModel sales, _) => sales.close,
-                animationDuration: 55)
+    double boxHeight = MediaQuery.of(context).size.height;
+    double boxWidth = MediaQuery.of(context).size.width;
+
+    return StreamBuilder(
+      stream: widget.btcBloc.btcChartStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColorDark,
+            ),
+          );
+        } else if (snapshot.data == null) {
+          return const Padding(
+            padding: EdgeInsets.all(10),
+            child: Center(
+              child: Text(
+                'Attention this Api is free, so you cannot send multiple requests per second, please wait and try again later.',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          );
+        }
+        List<ChartModel> itemChart = snapshot.data!.chartValues;
+        double minPrice = snapshot.data!.minPrice - 10;
+        double maxPrice = snapshot.data!.maxPrice + 10;
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            SizedBox(
+              height: boxHeight * 0.45,
+              child: Expanded(
+                child: SfCartesianChart(
+                  borderColor: Colors.transparent,
+                  borderWidth: 0,
+                  plotAreaBorderWidth: 0,
+                  margin: const EdgeInsets.all(0),
+                  trackballBehavior: _trackballBehavior,
+                  onTrackballPositionChanging: (trackballArgs) {
+                    _handleBtcData(trackballArgs);
+                  },
+                  zoomPanBehavior: ZoomPanBehavior(
+                      enablePinching: true, zoomMode: ZoomMode.x),
+                  tooltipBehavior: TooltipBehavior(enable: true),
+                  series: <ChartSeries<ChartModel, DateTime>>[
+                    SplineSeries(
+                      splineType: SplineType.natural,
+                      dataSource: itemChart,
+                      color: Theme.of(context).primaryColorDark,
+                      xValueMapper: (ChartModel sales, _) => sales.time,
+                      yValueMapper: (ChartModel sales, _) => sales.price,
+                      enableTooltip: false,
+                      width: 2,
+                    ),
+                  ],
+                  primaryXAxis: DateTimeAxis(
+                    isVisible: false,
+                    dateFormat: DateFormat.MMMMd(),
+                    majorGridLines: const MajorGridLines(width: 0),
+                    borderColor: Colors.transparent,
+                    borderWidth: 0,
+                  ),
+                  primaryYAxis: NumericAxis(
+                    borderColor: Colors.transparent,
+                    borderWidth: 0,
+                    isVisible: false,
+                    minimum: minPrice,
+                    maximum: maxPrice,
+                    numberFormat: NumberFormat.simpleCurrency(decimalDigits: 0),
+                    majorGridLines: const MajorGridLines(width: 0),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: boxHeight * 0.07,
+              width: double.infinity,
+              child: ListView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                itemCount: text.length,
+                itemBuilder: (context, index) {
+                  return SizedBox(
+                    // padding: const EdgeInsets.symmetric(horizontal: 00),
+                    width: boxWidth / 6.3,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            textBool = [
+                              false,
+                              false,
+                              false,
+                              false,
+                              false,
+                              false
+                            ];
+                            textBool[index] = true;
+                          });
+                          setDays(text[index]);
+                          // add bloc functionality
+                          _getChart();
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          // padding: const EdgeInsets.symmetric(
+                          //     horizontal: 10, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(50),
+                            color: textBool[index] == true
+                                ? Theme.of(context)
+                                    .primaryColorDark
+                                    .withOpacity(0.3)
+                                : Colors.transparent,
+                          ),
+                          child: Center(
+                            child: Text(
+                              text[index],
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
-        ),
-        // Expanded(
-        //   child: Padding(
-        //     padding: const EdgeInsets.all(8.0),
-        //     //Initialize the spark charts widget
-        //     child: SfSparkLineChart.custom(
-        //       //Enable the trackball
-        //       trackball: SparkChartTrackball(
-        //           activationMode: SparkChartActivationMode.tap),
-        //       //Enable marker
-        //       marker: SparkChartMarker(
-        //           displayMode: SparkChartMarkerDisplayMode.all),
-        //       //Enable data label
-        //       labelDisplayMode: SparkChartLabelDisplayMode.all,
-        //       xValueMapper: (int index) => data[index].year,
-        //       yValueMapper: (int index) => data[index].sales,
-        //       dataCount: 5,
-        //     ),
-        //   ),
-        // ),
-      ],
+        );
+      },
     );
   }
+
+  List<String> text = ['D', 'W', 'M', '3M', '6M', 'Y'];
+  List<bool> textBool = [false, false, true, false, false, false];
 
   int days = 30;
 
@@ -117,47 +213,14 @@ class _BtcChartState extends State<BtcChart> {
     }
   }
 
-  List<ChartModel>? itemChart;
+  _handleBtcData(TrackballArgs trackballArgs) {
+    DateTime xVal = trackballArgs.chartPointInfo.chartDataPoint!.x;
+    double yVal = trackballArgs.chartPointInfo.chartDataPoint!.y;
+    print("x $xVal");
+    print("y $yVal");
+  }
 
-  bool isRefresh = true;
-
-  Future<void> getChart() async {
-    String url = 'https://api.coingecko.com/api/v3/coins/' +
-        'itcoin' +
-        '/ohlc?vs_currency=usd&days=' +
-        days.toString();
-
-    setState(() {
-      isRefresh = true;
-    });
-    Dio dio = Dio();
-    Response response = await dio.get(
-      url,
-      // headers: {
-      //   "Content-Type": "application/json",
-      //   "Accept": "application/json",
-      // },
-    );
-
-    setState(() {
-      isRefresh = false;
-    });
-    if (response.statusCode == 200) {
-      Iterable x = json.decode(response.data);
-      List<ChartModel> modelList =
-          x.map((e) => ChartModel.fromJson(e)).toList();
-      setState(() {
-        itemChart = modelList;
-      });
-    } else {
-      print(response.statusCode);
-    }
+  Future<void> _getChart() async {
+    widget.btcBloc.actionController.add(GetChart(days: days));
   }
 }
-
-// class _SalesData {
-//   _SalesData(this.year, this.sales);
-
-//   final String year;
-//   final double sales;
-// }

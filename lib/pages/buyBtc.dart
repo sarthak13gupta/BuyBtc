@@ -2,11 +2,12 @@ import 'package:buy_bitcoin/bloc/btc_bloc.dart';
 import 'package:buy_bitcoin/bloc/btc_model.dart';
 import 'package:buy_bitcoin/pages/success.dart';
 import 'package:flutter/material.dart';
+import 'package:buy_bitcoin/bloc/btc_event.dart';
 
 class BuyBtc extends StatefulWidget {
   // get the amount in btc as a parameter
-  final num buyAmountBtc;
-  final num buyAmountUsd;
+  final double buyAmountBtc;
+  final double buyAmountUsd;
   final BtcBloc btcBloc;
   const BuyBtc({
     required this.buyAmountBtc,
@@ -21,6 +22,19 @@ class BuyBtc extends StatefulWidget {
 
 class _BuyBtcState extends State<BuyBtc> {
   bool _loading = false;
+  @override
+  void initState() {
+    super.initState();
+    _setBuyBtcListener();
+  }
+
+  _setBuyBtcListener() async {
+    widget.btcBloc.buyBtcLoadingStream.listen((event) {
+      setState(() {
+        _loading = event;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,17 +321,12 @@ class _BuyBtcState extends State<BuyBtc> {
                         padding: const EdgeInsets.all(8.0),
                         child: FloatingActionButton.extended(
                           backgroundColor: Theme.of(context).primaryColorLight,
-                          onPressed: () async {
-                            _buyBtc().then((value) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => SuccessPage(
-                                    buyAmountBtc: widget.buyAmountBtc,
-                                    buyAmountUsd: widget.buyAmountUsd,
-                                  ),
-                                ),
-                              );
-                            });
+                          onPressed: () {
+                            widget.btcBloc.actionController.add(BuyBtcEvent(
+                              context: context,
+                              buyAmountBtc: widget.buyAmountBtc,
+                              buyAmountUsd: widget.buyAmountUsd,
+                            ));
                           },
                           label: !_loading
                               ? const Text(
@@ -339,17 +348,5 @@ class _BuyBtcState extends State<BuyBtc> {
             ),
           );
         }));
-  }
-
-  Future<void> _buyBtc() async {
-    setState(() {
-      _loading = true;
-    });
-    await Future.delayed(
-      const Duration(seconds: 10),
-    );
-    setState(() {
-      _loading = false;
-    });
   }
 }

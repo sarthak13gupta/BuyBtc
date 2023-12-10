@@ -13,9 +13,9 @@ class PreviewPage extends StatefulWidget {
 
 class _PreviewPageState extends State<PreviewPage> {
   final TextEditingController _controller = TextEditingController();
-  num btcVal = 0.00000;
-  num usdVal = 0.0;
-  num marketPrice = 43000;
+  double btcVal = 0.00000;
+  double usdVal = 0.0;
+  double marketPrice = 43000;
 
   @override
   Widget build(BuildContext context) {

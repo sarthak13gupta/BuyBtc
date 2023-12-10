@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:buy_bitcoin/api/api_call.dart';
 import 'package:buy_bitcoin/bloc/btc_event.dart';
 import 'package:buy_bitcoin/bloc/btc_model.dart';
+import 'package:buy_bitcoin/pages/success.dart';
+import 'package:flutter/material.dart';
 import 'package:rxdart/subjects.dart';
 
 class BtcBloc {
@@ -31,11 +33,16 @@ class BtcBloc {
   Stream<ShowChartValue> get showChartValueStream =>
       _showChartValueController.stream;
 
+  final BehaviorSubject<bool> _buyBtcLoadingController =
+      BehaviorSubject<bool>();
+
+  Stream<bool> get buyBtcLoadingStream => _buyBtcLoadingController.stream;
+
   Future<void> _init() async {
     actionStream.listen((event) {
       if (event is CallPriceApi) {
         _callPriceApi(event);
-      } else if (event is BuyBtc) {
+      } else if (event is BuyBtcEvent) {
         _buyBtc(event);
       } else if (event is GetChart) {
         _getChart(event);
@@ -55,20 +62,32 @@ class BtcBloc {
       _btcDataController.add(btcData);
       // });
     } catch (e) {
-      // return showDialog(
-      //     context: event.context,
-      //     builder: ((context) {
-      //       return const ErrorDialog(
-      //         title: "Connection Error",
-      //         message:
-      //             "This is a free api thus cannot make multiple requests , Btc data unavailable.",
-      //       );
-      //     }));
       throw Exception(e);
     }
   }
 
-  Future<void> _buyBtc(BuyBtc event) async {}
+  Future<void> _buyBtc(BuyBtcEvent event) async {
+    // start loading
+    _buyBtcLoadingController.add(true);
+
+    final navigator = Navigator.of(event.context);
+
+    await Future.delayed(
+      const Duration(seconds: 10),
+    );
+
+    navigator.push(
+      MaterialPageRoute(
+        builder: (_) => SuccessPage(
+          buyAmountBtc: event.buyAmountBtc,
+          buyAmountUsd: event.buyAmountUsd,
+        ),
+      ),
+    );
+
+    // stop loading
+    _buyBtcLoadingController.add(false);
+  }
 
   Future<void> _getChart(GetChart event) async {
     ApiCall apiCall = ApiCall();

@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 abstract class BtcEvents {}
 
 // event of buying a bitcoin
-class BuyBtc extends BtcEvents {
+class BuyBtcEvent extends BtcEvents {
   final BuildContext context;
-  BuyBtc({required this.context});
+  final double buyAmountBtc;
+  final double buyAmountUsd;
+  BuyBtcEvent(
+      {required this.context,
+      required this.buyAmountBtc,
+      required this.buyAmountUsd});
 }
 
 class GetChart extends BtcEvents {
